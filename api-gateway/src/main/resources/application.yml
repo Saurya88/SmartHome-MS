@@ -1,0 +1,16 @@
+server:
+  port: 8080
+
+microservices:
+  automation:
+    base-url: http://automation-service:8081
+  device:
+    base-url: http://device-service:8082
+  user:
+    base-url: http://user-permissions-service:8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

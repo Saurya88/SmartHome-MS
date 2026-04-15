@@ -1,0 +1,41 @@
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    environment:
+      SERVER_PORT: 8080
+      USER_SERVICE_BASE_URL: http://user-permissions-service:8083
+      DEVICE_SERVICE_BASE_URL: http://device-service:8082
+      AUTOMATION_SERVICE_BASE_URL: http://automation-service:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-permissions-service
+      - device-service
+      - automation-service
+
+  user-permissions-service:
+    build:
+      context: .
+      dockerfile: user-permissions-service/Dockerfile
+    container_name: user-permissions-service
+    environment:
+      SERVER_PORT: 8083
+
+  device-service:
+    build:
+      context: .
+      dockerfile: device-service/Dockerfile
+    container_name: device-service
+    environment:
+      SERVER_PORT: 8082
+
+  automation-service:
+    build:
+      context: .
+      dockerfile: automation-service/Dockerfile
+    container_name: automation-service
+    environment:
+      SERVER_PORT: 8081
