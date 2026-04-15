@@ -1,0 +1,6 @@
+rootProject.name = "SmartHome-MS"
+
+include "user-permissions-service"
+include "device-service"
+include "automation-service"
+include "api-gateway"
