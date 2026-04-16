@@ -1,4 +1,88 @@
 services:
+  user-permissions-db:
+    image: mysql:8.4
+    container_name: user-permissions-db
+    environment:
+      MYSQL_DATABASE: user_permissions_db
+      MYSQL_USER: smarthome
+      MYSQL_PASSWORD: smarthome
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - user-permissions-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-usmarthome", "-psmarthome"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  device-db:
+    image: postgres:16
+    container_name: device-db
+    environment:
+      POSTGRES_DB: device_db
+      POSTGRES_USER: smarthome
+      POSTGRES_PASSWORD: smarthome
+    ports:
+      - "5433:5432"
+    volumes:
+      - device-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smarthome -d device_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  automation-db:
+    image: mysql:8.4
+    container_name: automation-db
+    environment:
+      MYSQL_DATABASE: automation_db
+      MYSQL_USER: smarthome
+      MYSQL_PASSWORD: smarthome
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3308:3306"
+    volumes:
+      - automation-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-usmarthome", "-psmarthome"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: smarthome-phpmyadmin
+    environment:
+      PMA_HOSTS: user-permissions-db,automation-db
+      PMA_PORTS: 3306,3306
+      PMA_USER: smarthome
+      PMA_PASSWORD: smarthome
+    ports:
+      - "8088:80"
+    depends_on:
+      user-permissions-db:
+        condition: service_healthy
+      automation-db:
+        condition: service_healthy
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: smarthome-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@smarthome.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      device-db:
+        condition: service_healthy
+
   api-gateway:
     build:
       context: .
@@ -23,6 +107,13 @@ services:
     container_name: user-permissions-service
     environment:
       SERVER_PORT: 8083
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://user-permissions-db:3306/user_permissions_db
+      SPRING_DATASOURCE_USERNAME: smarthome
+      SPRING_DATASOURCE_PASSWORD: smarthome
+    depends_on:
+      user-permissions-db:
+        condition: service_healthy
 
   device-service:
     build:
@@ -31,6 +122,13 @@ services:
     container_name: device-service
     environment:
       SERVER_PORT: 8082
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://device-db:5432/device_db
+      SPRING_DATASOURCE_USERNAME: smarthome
+      SPRING_DATASOURCE_PASSWORD: smarthome
+    depends_on:
+      device-db:
+        condition: service_healthy
 
   automation-service:
     build:
@@ -39,3 +137,16 @@ services:
     container_name: automation-service
     environment:
       SERVER_PORT: 8081
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://automation-db:3306/automation_db
+      SPRING_DATASOURCE_USERNAME: smarthome
+      SPRING_DATASOURCE_PASSWORD: smarthome
+    depends_on:
+      automation-db:
+        condition: service_healthy
+
+volumes:
+  user-permissions-db-data:
+  device-db-data:
+  automation-db-data:
+  pgadmin-data:

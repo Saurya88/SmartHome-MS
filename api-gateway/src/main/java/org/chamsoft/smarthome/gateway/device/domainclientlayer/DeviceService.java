@@ -1,4 +1,4 @@
-package org.chamsoft.smarthome.gateway.device.businesslogiclayer;
+package org.chamsoft.smarthome.gateway.device.domainclientlayer;
 
 import org.chamsoft.smarthome.gateway.device.presentationlayer.DeviceRequestDTO;
 import org.chamsoft.smarthome.gateway.device.presentationlayer.DeviceResponseDTO;
@@ -55,3 +55,4 @@ public class DeviceService {
         restTemplate.delete(deviceServiceBaseUrl + "/api/v1/devices/" + deviceId);
     }
 }
+

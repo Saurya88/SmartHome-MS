@@ -7,6 +7,7 @@ import org.chamsoft.smarthome.userpermissions.datamappinglayer.UserMapper;
 import org.chamsoft.smarthome.userpermissions.domain.User;
 import org.chamsoft.smarthome.userpermissions.presentationlayer.UserRequestDTO;
 import org.chamsoft.smarthome.userpermissions.presentationlayer.UserResponseDTO;
+import org.chamsoft.smarthome.userpermissions.utilities.DuplicateUsernameException;
 import org.chamsoft.smarthome.userpermissions.utilities.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponseDTO createUser(UserRequestDTO dto) {
+
+        userRepository.findByUsername(dto.getUsername())
+                .ifPresent(existingUser -> {
+                    throw new DuplicateUsernameException(dto.getUsername());
+                });
 
         User user = UserMapper.toEntity(dto);
 

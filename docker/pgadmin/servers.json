@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "SmartHome Device PostgreSQL",
+      "Group": "Servers",
+      "Host": "device-db",
+      "Port": 5432,
+      "MaintenanceDB": "device_db",
+      "Username": "smarthome",
+      "SSLMode": "prefer"
+    }
+  }
+}

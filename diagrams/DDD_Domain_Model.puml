@@ -1,0 +1,254 @@
+@startuml
+title Smart Home Management Platform - DDD Domain Model
+
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+
+skinparam package {
+  BorderColor #555555
+  FontStyle bold
+}
+
+skinparam class {
+  BorderColor #666666
+  BackgroundColor #f8f8f8
+}
+
+legend right
+  <b>DDD Legend</b>
+  <<Aggregate Root>> Aggregate Root
+  <<Entity>> Entity
+  <<Value Object>> Value Object
+  <<Repository>> Repository
+  <<Domain Service>> Domain Service
+  --> Reference by ID
+  *-- Owned inside aggregate
+  Red context: Core Subdomain
+  Blue/Green contexts: Supporting Subdomains
+endlegend
+
+package "Automation Routine Management (CORE)" #ffd6d6 {
+  package "Scene Aggregate" {
+    class Scene <<Aggregate Root>> {
+      sceneId: UUID
+      name: String
+      status: SceneStatus
+      createdAt: DateTime
+      activate()
+    }
+
+    class DeviceAction <<Value Object>> {
+      deviceId: UUID
+      actionType: String
+      parameters: String
+    }
+
+    enum SceneStatus {
+      ACTIVE
+      INACTIVE
+      SCHEDULED
+    }
+  }
+
+  package "Trigger Rule Aggregate" {
+    class TriggerRule <<Aggregate Root>> {
+      triggerId: String
+      triggerType: TriggerType
+      conditionExpression: String
+      enabled: Boolean
+      triggerValue: String
+    }
+
+    class Condition <<Value Object>> {
+      attribute: String
+      operator: String
+      conditionValue: String
+    }
+
+    class Schedule <<Value Object>> {
+      startTime: DateTime
+      endTime: DateTime
+      recurrencePattern: String
+    }
+
+    enum TriggerType {
+      TIME_BASED
+      SENSOR_EVENT
+      MANUAL
+    }
+  }
+
+  interface SceneRepository <<Repository>> {
+    findById(sceneId)
+    findAll()
+    save(scene)
+  }
+
+  interface TriggerRuleRepository <<Repository>> {
+    findById(triggerId)
+    findAll()
+    save(triggerRule)
+  }
+
+  class SceneService <<Domain Service>> {
+    createScene()
+    addDeviceActions()
+    addTriggerRules()
+    activateScene()
+  }
+
+  class TriggerRuleService <<Domain Service>> {
+    createTriggerRule()
+    updateTriggerRule()
+    deleteTriggerRule()
+  }
+
+  Scene *-- "0..*" DeviceAction
+  Scene *-- "0..*" TriggerRule
+  Scene --> SceneStatus
+  TriggerRule *-- Condition
+  TriggerRule *-- Schedule
+  TriggerRule --> TriggerType
+  SceneRepository ..> Scene
+  TriggerRuleRepository ..> TriggerRule
+  SceneService ..> SceneRepository
+  TriggerRuleService ..> TriggerRuleRepository
+}
+
+package "Device Registry (Supporting)" #dcecff {
+  package "Device Aggregate" {
+    class Device <<Aggregate Root>> {
+      deviceId: UUID
+      deviceName: String
+      deviceType: DeviceType
+      status: DeviceStatus
+      firmwareVersion: String
+      registeredAt: DateTime
+      connectivityType: String
+    }
+
+    class DeviceCapability <<Value Object>> {
+      capability: String
+    }
+
+    enum DeviceType {
+      LIGHT
+      THERMOSTAT
+      SENSOR
+      CAMERA
+      LOCK
+    }
+
+    enum DeviceStatus {
+      ONLINE
+      OFFLINE
+      MAINTENANCE
+    }
+  }
+
+  interface DeviceRepository <<Repository>> {
+    findById(deviceId)
+    existsByDeviceName(deviceName)
+    save(device)
+  }
+
+  class DeviceService <<Domain Service>> {
+    createDevice()
+    updateDevice()
+    deleteDevice()
+  }
+
+  Device *-- "0..*" DeviceCapability
+  Device --> DeviceType
+  Device --> DeviceStatus
+  DeviceRepository ..> Device
+  DeviceService ..> DeviceRepository
+}
+
+package "User Permissions (Supporting)" #ddf8dd {
+  package "User Aggregate" {
+    class User <<Aggregate Root>> {
+      userId: UUID
+      username: String
+      email: Email
+      role: UserRole
+      accountStatus: AccountStatus
+    }
+
+    class Email <<Value Object>> {
+      value: String
+    }
+
+    class Permission <<Value Object>> {
+      deviceId: UUID
+      accessLevel: AccessLevel
+    }
+
+    enum UserRole {
+      OWNER
+      ADMIN
+      MEMBER
+      GUEST
+    }
+
+    enum AccountStatus {
+      ACTIVE
+      SUSPENDED
+    }
+
+    enum AccessLevel {
+      READ_ONLY
+      CONTROL
+      FULL_ACCESS
+    }
+  }
+
+  interface UserRepository <<Repository>> {
+    findByUserId(userId)
+    findByUsername(username)
+    findByEmail_Value(email)
+    save(user)
+  }
+
+  class UserService <<Domain Service>> {
+    createUser()
+    updateUser()
+    deleteUser()
+  }
+
+  User *-- Email
+  User *-- "0..*" Permission
+  User --> UserRole
+  User --> AccountStatus
+  Permission --> AccessLevel
+  UserRepository ..> User
+  UserService ..> UserRepository
+}
+
+note left of Scene
+  Invariant:
+  Scene must contain at least one
+  TriggerRule and one DeviceAction
+  before it can be activated.
+end note
+
+note right of Device
+  Invariant:
+  Device name must be unique.
+  Firmware is tracked as firmwareVersion
+  in the implemented Device aggregate.
+end note
+
+note left of User
+  Invariant:
+  Username must be unique.
+  User must have explicit permission
+  to control a device in an automation scene.
+end note
+
+DeviceAction ..> Device : deviceId
+Permission ..> Device : deviceId
+Scene ..> User : userId / ownership reference
+
+@enduml

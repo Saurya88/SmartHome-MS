@@ -1,4 +1,4 @@
-package org.chamsoft.smarthome.gateway.userpermissions.businesslogiclayer;
+package org.chamsoft.smarthome.gateway.userpermissions.domainclientlayer;
 
 import org.chamsoft.smarthome.gateway.userpermissions.presentationlayer.UserRequestDTO;
 import org.chamsoft.smarthome.gateway.userpermissions.presentationlayer.UserResponseDTO;

@@ -3,6 +3,7 @@ package org.chamsoft.smarthome.automation.businesslogiclayer;
 import org.chamsoft.smarthome.automation.dataccesslayer.SceneRepository;
 import org.chamsoft.smarthome.automation.domain.*;
 import org.chamsoft.smarthome.automation.presentationlayer.SceneRequestDTO;
+import org.chamsoft.smarthome.automation.utilities.InvalidSceneActivationException;
 import org.chamsoft.smarthome.automation.utilities.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +58,11 @@ public class SceneService {
     @Transactional
     public Scene activateScene(UUID sceneId) {
         Scene scene = getSceneOrThrow(sceneId);
-        scene.activate();
+        try {
+            scene.activate();
+        } catch (IllegalStateException ex) {
+            throw new InvalidSceneActivationException(ex.getMessage());
+        }
         return sceneRepository.save(scene);
     }
 

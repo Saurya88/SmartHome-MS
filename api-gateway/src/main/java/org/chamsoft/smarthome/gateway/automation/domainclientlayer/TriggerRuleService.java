@@ -1,4 +1,4 @@
-package org.chamsoft.smarthome.gateway.automation.businesslogiclayer;
+package org.chamsoft.smarthome.gateway.automation.domainclientlayer;
 
 import org.chamsoft.smarthome.gateway.automation.presentationlayer.TriggerRuleRequestDTO;
 import org.chamsoft.smarthome.gateway.automation.presentationlayer.TriggerRuleResponseDTO;

@@ -2,6 +2,7 @@ package org.chamsoft.smarthome.deviceregistry.businesslogiclayer;
 
 import org.chamsoft.smarthome.deviceregistry.domain.Device;
 import org.chamsoft.smarthome.deviceregistry.dataccesslayer.DeviceRepository;
+import org.chamsoft.smarthome.deviceregistry.utilities.DuplicateDeviceNameException;
 import org.chamsoft.smarthome.deviceregistry.utilities.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,9 @@ public class DeviceService {
     }
 
     public Device createDevice(Device device) {
+        if (deviceRepository.existsByDeviceName(device.getDeviceName())) {
+            throw new DuplicateDeviceNameException(device.getDeviceName());
+        }
         return deviceRepository.save(device);
     }
 

@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.0'
     id 'io.spring.dependency-management' version '1.1.6'
+    id 'jacoco'
 }
 
 group = 'org.chamsoft.smarthome.deviceregistry'
@@ -43,11 +44,13 @@ dependencies {
 
     // DB (pick one)
     runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.postgresql:postgresql'
 //  implementation 'org.springframework.boot:spring-boot-h2console'
 //  runtimeOnly 'com.mysql:mysql-connector-j'
 
     // Testing (this gives you @DataJpaTest, MockMvc, JUnit5, Mockito, AssertJ, Hamcrest)
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webflux'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // Testcontainers (optional; add only if you will actually use it)
@@ -57,4 +60,50 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
 }
+
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/*Application.class',
+                    '**/config/**',
+                    '**/domain/**',
+                    '**/presentationlayer/*DTO.class'
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.90
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/*Application.class',
+                    '**/config/**',
+                    '**/domain/**',
+                    '**/presentationlayer/*DTO.class'
+            ])
+        }))
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
