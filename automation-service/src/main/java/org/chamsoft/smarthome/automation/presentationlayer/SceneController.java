@@ -84,6 +84,26 @@ public class SceneController {
         );
     }
 
+    @PutMapping("/{id}/device-actions")
+    public ResponseEntity<SceneResponseDTO> replaceDeviceActions(
+            @PathVariable UUID id,
+            @RequestBody List<DeviceAction> actions) {
+
+        return ResponseEntity.ok(
+                SceneMapper.toDTO(sceneService.replaceDeviceActions(id, actions))
+        );
+    }
+
+    @PutMapping("/{id}/trigger-rules")
+    public ResponseEntity<SceneResponseDTO> replaceTriggerRules(
+            @PathVariable UUID id,
+            @RequestBody List<TriggerRule> rules) {
+
+        return ResponseEntity.ok(
+                SceneMapper.toDTO(sceneService.replaceTriggerRules(id, rules))
+        );
+    }
+
     @PutMapping("/{id}/activate")
     public ResponseEntity<SceneResponseDTO> activateScene(@PathVariable UUID id) {
         return ResponseEntity.ok(

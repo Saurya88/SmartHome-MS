@@ -116,6 +116,51 @@ package "Automation Routine Management (CORE)" #ffd6d6 {
   TriggerRuleService ..> TriggerRuleRepository
 }
 
+package "Scene Orchestration (Aggregator)" #ffe7c2 {
+  package "Scene Orchestration Aggregate" {
+    class SceneOrchestration <<Aggregate Root>> {
+      orchestrationId: UUID
+      ownerUserId: UUID
+      automationSceneId: UUID
+      name: String
+      status: String
+      createdAt: DateTime
+    }
+
+    class ManagedDeviceAction <<Value Object>> {
+      deviceId: UUID
+      actionType: String
+      parameters: String
+    }
+
+    class ManagedTriggerRule <<Value Object>> {
+      triggerId: String
+      triggerType: String
+      conditionExpression: String
+      enabled: Boolean
+      triggerValue: String
+    }
+  }
+
+  interface SceneOrchestrationRepository <<Repository>> {
+    findById(orchestrationId)
+    findAll()
+    save(orchestration)
+    deleteById(orchestrationId)
+  }
+
+  class SceneOrchestrationService <<Domain Service>> {
+    createSceneOrchestration()
+    updateSceneOrchestration()
+    deleteSceneOrchestration()
+  }
+
+  SceneOrchestration *-- "0..*" ManagedDeviceAction
+  SceneOrchestration *-- "0..*" ManagedTriggerRule
+  SceneOrchestrationRepository ..> SceneOrchestration
+  SceneOrchestrationService ..> SceneOrchestrationRepository
+}
+
 package "Device Registry (Supporting)" #dcecff {
   package "Device Aggregate" {
     class Device <<Aggregate Root>> {
@@ -233,6 +278,15 @@ note left of Scene
   before it can be activated.
 end note
 
+note top of SceneOrchestration
+  Invariant:
+  SceneOrchestration must contain at least one
+  ManagedDeviceAction and one ManagedTriggerRule.
+  Owner must be ACTIVE and have CONTROL/FULL_ACCESS
+  to all referenced devices, and each device must be
+  ONLINE with a valid firmwareVersion.
+end note
+
 note right of Device
   Invariant:
   Device name must be unique.
@@ -250,5 +304,8 @@ end note
 DeviceAction ..> Device : deviceId
 Permission ..> Device : deviceId
 Scene ..> User : userId / ownership reference
+SceneOrchestration ..> User : ownerUserId
+SceneOrchestration ..> Device : deviceId
+SceneOrchestration ..> Scene : automationSceneId
 
 @enduml

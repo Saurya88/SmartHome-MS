@@ -155,6 +155,57 @@ class AutomationControllerIntegrationTest {
     }
 
     @Test
+    void replaceSceneActionsAndRules_whenSceneExists_returnsOnlyReplacementCollections() {
+        SceneResponseDTO created = createScene("Replace Collections Scene");
+
+        webTestClient.post()
+                .uri("/api/v1/scenes/{id}/device-actions", created.getSceneId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of(Map.of(
+                        "deviceId", UUID.randomUUID(),
+                        "actionType", "TURN_ON",
+                        "parameters", "{}"
+                )))
+                .exchange()
+                .expectStatus().isOk();
+
+        webTestClient.put()
+                .uri("/api/v1/scenes/{id}/device-actions", created.getSceneId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of(Map.of(
+                        "deviceId", UUID.randomUUID(),
+                        "actionType", "TURN_OFF",
+                        "parameters", "{}"
+                )))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(SceneResponseDTO.class)
+                .value(response -> {
+                    assertThat(response.getDeviceActions()).hasSize(1);
+                    assertThat(response.getDeviceActions().getFirst().getActionType()).isEqualTo("TURN_OFF");
+                });
+
+        webTestClient.post()
+                .uri("/api/v1/scenes/{id}/trigger-rules", created.getSceneId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of(triggerRuleRequest("original-trigger", "MANUAL", "manual == true", true)))
+                .exchange()
+                .expectStatus().isOk();
+
+        webTestClient.put()
+                .uri("/api/v1/scenes/{id}/trigger-rules", created.getSceneId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of(triggerRuleRequest("replacement-trigger", "TIME_BASED", "time == 23:00", true)))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(SceneResponseDTO.class)
+                .value(response -> {
+                    assertThat(response.getTriggerRules()).hasSize(1);
+                    assertThat(response.getTriggerRules().getFirst().getTriggerId()).isEqualTo("replacement-trigger");
+                });
+    }
+
+    @Test
     void createAndGetTriggerRule_whenRequestIsValid_returnsCreatedTriggerRule() {
         TriggerRuleResponseDTO created = createTriggerRule("trigger-evening");
 

@@ -7,8 +7,6 @@ services:
       MYSQL_USER: smarthome
       MYSQL_PASSWORD: smarthome
       MYSQL_ROOT_PASSWORD: rootpass
-    ports:
-      - "3307:3306"
     volumes:
       - user-permissions-db-data:/var/lib/mysql
     healthcheck:
@@ -24,8 +22,6 @@ services:
       POSTGRES_DB: device_db
       POSTGRES_USER: smarthome
       POSTGRES_PASSWORD: smarthome
-    ports:
-      - "5433:5432"
     volumes:
       - device-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -42,8 +38,6 @@ services:
       MYSQL_USER: smarthome
       MYSQL_PASSWORD: smarthome
       MYSQL_ROOT_PASSWORD: rootpass
-    ports:
-      - "3308:3306"
     volumes:
       - automation-db-data:/var/lib/mysql
     healthcheck:
@@ -51,6 +45,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  scene-orchestrator-db:
+    image: mongo:7
+    container_name: scene-orchestrator-db
+    environment:
+      MONGO_INITDB_DATABASE: scene_orchestrator_db
+    volumes:
+      - scene-orchestrator-db-data:/data/db
+      - ./docker/mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "mongodb://localhost:27017/scene_orchestrator_db", "--eval", "db.runCommand({ ping: 1 }).ok" ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
 
   phpmyadmin:
     image: phpmyadmin:5.2
@@ -60,12 +68,20 @@ services:
       PMA_PORTS: 3306,3306
       PMA_USER: smarthome
       PMA_PASSWORD: smarthome
-    ports:
-      - "8088:80"
     depends_on:
       user-permissions-db:
         condition: service_healthy
       automation-db:
+        condition: service_healthy
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: smarthome-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://scene-orchestrator-db:27017/scene_orchestrator_db
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      scene-orchestrator-db:
         condition: service_healthy
 
   pgadmin:
@@ -74,8 +90,6 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@smarthome.com
       PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
       - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
@@ -93,17 +107,17 @@ services:
       USER_SERVICE_BASE_URL: http://user-permissions-service:8083
       DEVICE_SERVICE_BASE_URL: http://device-service:8082
       AUTOMATION_SERVICE_BASE_URL: http://automation-service:8081
+      SCENE_ORCHESTRATOR_SERVICE_BASE_URL: http://scene-orchestrator-service:8084
     ports:
       - "8080:8080"
     depends_on:
       - user-permissions-service
       - device-service
       - automation-service
+      - scene-orchestrator-service
 
   swagger-ui:
     image: swaggerapi/swagger-ui
-    ports:
-      - "8081:8080"
     environment:
       - API_URL=http://api-gateway:8080/v3/api-docs
     depends_on:
@@ -154,8 +168,31 @@ services:
       automation-db:
         condition: service_healthy
 
+  scene-orchestrator-service:
+    build:
+      context: .
+      dockerfile: scene-orchestrator-service/Dockerfile
+    container_name: scene-orchestrator-service
+    environment:
+      SERVER_PORT: 8084
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_MONGODB_URI: mongodb://scene-orchestrator-db:27017/scene_orchestrator_db
+      AUTOMATION_SERVICE_BASE_URL: http://automation-service:8081
+      DEVICE_SERVICE_BASE_URL: http://device-service:8082
+      USER_SERVICE_BASE_URL: http://user-permissions-service:8083
+    depends_on:
+      scene-orchestrator-db:
+        condition: service_healthy
+      automation-service:
+        condition: service_started
+      device-service:
+        condition: service_started
+      user-permissions-service:
+        condition: service_started
+
 volumes:
   user-permissions-db-data:
   device-db-data:
   automation-db-data:
+  scene-orchestrator-db-data:
   pgadmin-data:

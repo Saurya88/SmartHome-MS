@@ -56,6 +56,22 @@ public class SceneService {
     }
 
     @Transactional
+    public Scene replaceDeviceActions(UUID sceneId, List<DeviceAction> actions) {
+        Scene scene = getSceneOrThrow(sceneId);
+        scene.getDeviceActions().clear();
+        actions.forEach(scene::addDeviceAction);
+        return sceneRepository.save(scene);
+    }
+
+    @Transactional
+    public Scene replaceTriggerRules(UUID sceneId, List<TriggerRule> rules) {
+        Scene scene = getSceneOrThrow(sceneId);
+        scene.getTriggerRules().clear();
+        rules.forEach(scene::addTriggerRule);
+        return sceneRepository.save(scene);
+    }
+
+    @Transactional
     public Scene activateScene(UUID sceneId) {
         Scene scene = getSceneOrThrow(sceneId);
         try {

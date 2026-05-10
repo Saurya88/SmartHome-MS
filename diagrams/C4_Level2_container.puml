@@ -13,10 +13,12 @@ System_Boundary(smarthome, "SmartHome System") {
     Container(user_permissions_service, "User Permissions Service", "Java, Spring Boot", "Manages users, roles, account status, and device-specific permissions.")
     Container(device_service, "Device Service", "Java, Spring Boot", "Manages registered smart devices, capabilities, status, firmware version, and connectivity details.")
     Container(automation_service, "Automation Service", "Java, Spring Boot", "Manages scenes, device actions, trigger rules, schedules, and scene activation.")
+    Container(scene_orchestrator_service, "Scene Orchestrator Service (Aggregator)", "Java, Spring Boot", "Aggregates user + device + automation data into a Scene Orchestration aggregate, enforces invariants, persists aggregate in MongoDB.")
 
     ContainerDb(user_permissions_db, "User Permissions DB", "MySQL", "Stores users and device access permissions.")
     ContainerDb(device_db, "Device DB", "PostgreSQL", "Stores device registry data and device capabilities.")
     ContainerDb(automation_db, "Automation DB", "MySQL", "Stores scenes, scene actions, and trigger rules.")
+    ContainerDb(scene_orchestrator_db, "Scene Orchestrator DB", "MongoDB", "Stores Scene Orchestration aggregates.")
 }
 
 System_Ext(smart_devices, "Smart Devices", "Physical cameras, lights, thermostats, locks, and sensors.")
@@ -26,12 +28,17 @@ Rel(homeowner, api_gateway, "Uses", "HTTPS/JSON")
 Rel(api_gateway, user_permissions_service, "Routes user and permission requests to", "HTTP/JSON")
 Rel(api_gateway, device_service, "Routes device requests to", "HTTP/JSON")
 Rel(api_gateway, automation_service, "Routes scene and trigger rule requests to", "HTTP/JSON")
+Rel(api_gateway, scene_orchestrator_service, "Routes scene orchestration aggregation requests to", "HTTP/JSON")
 
 Rel(user_permissions_service, user_permissions_db, "Reads from and writes to", "Spring Data JPA/JDBC")
 Rel(device_service, device_db, "Reads from and writes to", "Spring Data JPA/JDBC")
 Rel(automation_service, automation_db, "Reads from and writes to", "Spring Data JPA/JDBC")
+Rel(scene_orchestrator_service, scene_orchestrator_db, "Reads from and writes to", "Spring Data MongoDB")
 
 Rel(device_service, smart_devices, "Represents and tracks", "Device registry data")
 Rel(automation_service, device_service, "References devices when defining actions", "Device IDs")
+Rel(scene_orchestrator_service, user_permissions_service, "Reads owner + permissions", "HTTP/JSON")
+Rel(scene_orchestrator_service, device_service, "Reads device status + firmware", "HTTP/JSON")
+Rel(scene_orchestrator_service, automation_service, "Creates/updates scenes and actions", "HTTP/JSON")
 
 @enduml

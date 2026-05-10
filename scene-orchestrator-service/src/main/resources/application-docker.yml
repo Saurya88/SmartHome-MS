@@ -1,0 +1,12 @@
+spring:
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://scene-orchestrator-db:27017/scene_orchestrator_db}
+
+microservices:
+  automation:
+    base-url: ${AUTOMATION_SERVICE_BASE_URL:http://automation-service:8081}
+  device:
+    base-url: ${DEVICE_SERVICE_BASE_URL:http://device-service:8082}
+  user:
+    base-url: ${USER_SERVICE_BASE_URL:http://user-permissions-service:8083}

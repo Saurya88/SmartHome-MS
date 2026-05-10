@@ -3,11 +3,13 @@ server:
 
 microservices:
   automation:
-    base-url: http://automation-service:8081
+    base-url: ${AUTOMATION_SERVICE_BASE_URL:http://automation-service:8081}
   device:
-    base-url: http://device-service:8082
+    base-url: ${DEVICE_SERVICE_BASE_URL:http://device-service:8082}
   user:
-    base-url: http://user-permissions-service:8083
+    base-url: ${USER_SERVICE_BASE_URL:http://user-permissions-service:8083}
+  scene-orchestrator:
+    base-url: ${SCENE_ORCHESTRATOR_SERVICE_BASE_URL:http://scene-orchestrator-service:8084}
 
 management:
   endpoints:
