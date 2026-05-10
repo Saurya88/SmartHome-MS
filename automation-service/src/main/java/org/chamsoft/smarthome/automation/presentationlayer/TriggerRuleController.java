@@ -1,5 +1,6 @@
 package org.chamsoft.smarthome.automation.presentationlayer;
 
+import jakarta.validation.Valid;
 import org.chamsoft.smarthome.automation.businesslogiclayer.TriggerRuleService;
 import org.chamsoft.smarthome.automation.datamappinglayer.TriggerRuleMapper;
 import org.chamsoft.smarthome.automation.domain.TriggerRule;
@@ -40,7 +41,7 @@ public class TriggerRuleController {
 
     @PostMapping
     public ResponseEntity<TriggerRuleResponseDTO> createTriggerRule(
-            @RequestBody TriggerRuleRequestDTO request) {
+            @Valid @RequestBody TriggerRuleRequestDTO request) {
 
         TriggerRule saved = triggerRuleService.saveTriggerRule(
                 TriggerRuleMapper.toEntity(request)
@@ -59,13 +60,14 @@ public class TriggerRuleController {
     @PutMapping("/{id}")
     public ResponseEntity<TriggerRuleResponseDTO> updateTriggerRule(
             @PathVariable String id,
-            @RequestBody TriggerRuleRequestDTO request) {
+            @Valid @RequestBody TriggerRuleRequestDTO request) {
 
         TriggerRule existing = triggerRuleService.getTriggerRuleById(id);
 
         existing.setTriggerType(Enum.valueOf(TriggerType.class, request.getTriggerType()));
         existing.setConditionExpression(request.getConditionExpression());
         existing.setEnabled(request.isEnabled());
+        existing.setTriggerValue(request.getTriggerValue());
 
         TriggerRule updated = triggerRuleService.saveTriggerRule(existing);
 

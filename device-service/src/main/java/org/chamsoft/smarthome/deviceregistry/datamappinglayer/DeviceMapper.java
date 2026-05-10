@@ -13,10 +13,14 @@ public class DeviceMapper {
     public static Device toEntity(DeviceRequestDTO dto) {
         if (dto == null) return null;
 
+        DeviceStatus status = dto.getStatus() == null || dto.getStatus().isBlank()
+                ? DeviceStatus.OFFLINE
+                : DeviceStatus.valueOf(dto.getStatus());
+
         return Device.builder()
                 .deviceName(dto.getDeviceName())
                 .deviceType(DeviceType.valueOf(dto.getDeviceType()))
-                .status(DeviceStatus.OFFLINE) // default status
+                .status(status)
                 .firmwareVersion(dto.getFirmwareVersion())
                 .registeredAt(LocalDateTime.now())
                 .capabilities(dto.getCapabilities()) // now just List<String>

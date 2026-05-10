@@ -1,13 +1,17 @@
 package org.chamsoft.smarthome.automation.businesslogiclayer;
 
 import org.chamsoft.smarthome.automation.dataccesslayer.SceneRepository;
+import org.chamsoft.smarthome.automation.datamappinglayer.TriggerRuleMapper;
 import org.chamsoft.smarthome.automation.domain.*;
+import org.chamsoft.smarthome.automation.presentationlayer.DeviceActionRequestDTO;
 import org.chamsoft.smarthome.automation.presentationlayer.SceneRequestDTO;
+import org.chamsoft.smarthome.automation.presentationlayer.TriggerRuleRequestDTO;
 import org.chamsoft.smarthome.automation.utilities.InvalidSceneActivationException;
 import org.chamsoft.smarthome.automation.utilities.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,7 +39,15 @@ public class SceneService {
         }
 
         if (request.getStatus() != null) {
-            scene.setStatus(request.getStatus());
+            if (request.getStatus() == SceneStatus.ACTIVE) {
+                try {
+                    scene.activate();
+                } catch (IllegalStateException ex) {
+                    throw new InvalidSceneActivationException(ex.getMessage());
+                }
+            } else {
+                scene.setStatus(request.getStatus());
+            }
         }
 
         return sceneRepository.save(scene);
@@ -49,9 +61,27 @@ public class SceneService {
     }
 
     @Transactional
+    public Scene replaceDeviceActions(UUID sceneId, List<DeviceActionRequestDTO> actions) {
+        Scene scene = getSceneOrThrow(sceneId);
+        scene.setDeviceActions(new ArrayList<>(actions.stream()
+                .map(action -> new DeviceAction(action.getDeviceId(), action.getActionType(), action.getParameters()))
+                .toList()));
+        return sceneRepository.save(scene);
+    }
+
+    @Transactional
     public Scene addTriggerRules(UUID sceneId, List<TriggerRule> rules) {
         Scene scene = getSceneOrThrow(sceneId);
         rules.forEach(scene::addTriggerRule);
+        return sceneRepository.save(scene);
+    }
+
+    @Transactional
+    public Scene replaceTriggerRules(UUID sceneId, List<TriggerRuleRequestDTO> rules) {
+        Scene scene = getSceneOrThrow(sceneId);
+        scene.setTriggerRules(new ArrayList<>(rules.stream()
+                .map(TriggerRuleMapper::toEntity)
+                .toList()));
         return sceneRepository.save(scene);
     }
 

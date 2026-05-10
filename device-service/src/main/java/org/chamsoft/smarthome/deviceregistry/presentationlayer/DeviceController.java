@@ -1,5 +1,6 @@
 package org.chamsoft.smarthome.deviceregistry.presentationlayer;
 
+import jakarta.validation.Valid;
 import org.chamsoft.smarthome.deviceregistry.businesslogiclayer.DeviceService;
 import org.chamsoft.smarthome.deviceregistry.datamappinglayer.DeviceMapper;
 import org.chamsoft.smarthome.deviceregistry.domain.Device;
@@ -40,7 +41,7 @@ public class DeviceController {
     }
 
     @PostMapping
-    public ResponseEntity<DeviceResponseDTO> createDevice(@RequestBody DeviceRequestDTO request) {
+    public ResponseEntity<DeviceResponseDTO> createDevice(@Valid @RequestBody DeviceRequestDTO request) {
         Device device = DeviceMapper.toEntity(request);
         Device saved = deviceService.createDevice(device);
 
@@ -56,7 +57,7 @@ public class DeviceController {
 
     @PutMapping("/{id}")
     public ResponseEntity<DeviceResponseDTO> updateDevice(@PathVariable UUID id,
-                                                          @RequestBody DeviceRequestDTO request) {
+                                                          @Valid @RequestBody DeviceRequestDTO request) {
         Device updated = DeviceMapper.toEntity(request);
         Device saved = deviceService.updateDevice(id, updated);
 

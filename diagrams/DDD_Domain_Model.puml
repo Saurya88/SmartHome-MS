@@ -26,9 +26,62 @@ legend right
   *-- Owned inside aggregate
   Red context: Core Subdomain
   Blue/Green contexts: Supporting Subdomains
+  Grey context: Out of Scope
 endlegend
 
-package "Automation Routine Management (CORE)" #ffd6d6 {
+package "Scene Orchestration (CORE)" #ffd6d6 {
+  package "Scene Orchestration Aggregate" {
+    class SceneOrchestration <<Aggregate Root>> {
+      orchestrationId: UUID
+      ownerUserId: UUID
+      automationSceneId: UUID
+      name: String
+      status: SceneOrchestrationStatus
+      createdAt: DateTime
+    }
+
+    class ManagedDeviceAction <<Value Object>> {
+      deviceId: UUID
+      actionType: String
+      parameters: String
+    }
+
+    class ManagedTriggerRule <<Value Object>> {
+      triggerId: String
+      triggerType: String
+      conditionExpression: String
+      enabled: Boolean
+      triggerValue: String
+    }
+
+    enum SceneOrchestrationStatus {
+      ACTIVE
+      INACTIVE
+      SCHEDULED
+    }
+  }
+
+  interface SceneOrchestrationRepository <<Repository>> {
+    findById(orchestrationId)
+    findAll()
+    save(sceneOrchestration)
+  }
+
+  class SceneOrchestrationService <<Domain Service>> {
+    createSceneOrchestration()
+    updateSceneOrchestration()
+    deleteSceneOrchestration()
+    validateOwnerAndDevices()
+  }
+
+  SceneOrchestration *-- "1..*" ManagedDeviceAction
+  SceneOrchestration *-- "1..*" ManagedTriggerRule
+  SceneOrchestration --> SceneOrchestrationStatus
+  SceneOrchestrationRepository ..> SceneOrchestration
+  SceneOrchestrationService ..> SceneOrchestrationRepository
+}
+
+package "Automation Routine Management (Supporting)" #dcecff {
   package "Scene Aggregate" {
     class Scene <<Aggregate Root>> {
       sceneId: UUID
@@ -93,8 +146,9 @@ package "Automation Routine Management (CORE)" #ffd6d6 {
 
   class SceneService <<Domain Service>> {
     createScene()
-    addDeviceActions()
-    addTriggerRules()
+    updateScene()
+    replaceDeviceActions()
+    replaceTriggerRules()
     activateScene()
   }
 
@@ -207,7 +261,6 @@ package "User Permissions (Supporting)" #ddf8dd {
   interface UserRepository <<Repository>> {
     findByUserId(userId)
     findByUsername(username)
-    findByEmail_Value(email)
     save(user)
   }
 
@@ -226,29 +279,44 @@ package "User Permissions (Supporting)" #ddf8dd {
   UserService ..> UserRepository
 }
 
+package "Firmware Update Management (Out of Scope)" #dddddd {
+  class Firmware <<Aggregate Root>> {
+    firmwareId: UUID
+    version: String
+    compatibleDeviceType: DeviceType
+    mandatory: Boolean
+  }
+}
+
+note left of SceneOrchestration
+  Aggregate Invariant:
+  A scene orchestration must contain at least
+  one ManagedTriggerRule and one ManagedDeviceAction.
+  The owner user must be ACTIVE and have CONTROL
+  or FULL_ACCESS to every referenced device.
+  Every referenced device must be ONLINE and
+  have a valid firmwareVersion.
+end note
+
 note left of Scene
-  Invariant:
-  Scene must contain at least one
+  Low-level Invariant:
+  A Scene must contain at least one
   TriggerRule and one DeviceAction
   before it can be activated.
 end note
 
-note right of Device
-  Invariant:
-  Device name must be unique.
-  Firmware is tracked as firmwareVersion
-  in the implemented Device aggregate.
+note right of Firmware
+  Out of Scope:
+  Dedicated firmware management was proposed,
+  but Milestone 2 keeps compatibility checks
+  at the orchestration layer and stores the
+  current firmwareVersion on Device.
 end note
 
-note left of User
-  Invariant:
-  Username must be unique.
-  User must have explicit permission
-  to control a device in an automation scene.
-end note
-
-DeviceAction ..> Device : deviceId
+ManagedDeviceAction ..> Device : deviceId
 Permission ..> Device : deviceId
-Scene ..> User : userId / ownership reference
+SceneOrchestration ..> User : ownerUserId
+SceneOrchestration ..> Scene : automationSceneId
+Scene ..> TriggerRule : uses in automation runtime
 
 @enduml

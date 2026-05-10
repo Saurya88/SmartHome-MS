@@ -85,6 +85,19 @@ class AutomationControllerIntegrationTest {
     }
 
     @Test
+    void createScene_whenNameIsMissing_returnsBadRequest() {
+        webTestClient.post()
+                .uri("/api/v1/scenes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("status", "INACTIVE"))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(400)
+                .jsonPath("$.message").value(message -> assertThat(message.toString()).contains("name"));
+    }
+
+    @Test
     void deleteScene_whenSceneExists_returnsNoContent() {
         SceneResponseDTO created = createScene("Delete Scene");
 
@@ -151,6 +164,42 @@ class AutomationControllerIntegrationTest {
                     assertThat(response.getStatus().name()).isEqualTo("ACTIVE");
                     assertThat(response.getDeviceActions()).hasSize(1);
                     assertThat(response.getTriggerRules()).hasSize(1);
+                });
+    }
+
+    @Test
+    void replaceSceneActionsAndRules_whenSceneExists_replacesCollections() {
+        SceneResponseDTO created = createScene("Replace Scene");
+
+        webTestClient.put()
+                .uri("/api/v1/scenes/{id}/device-actions", created.getSceneId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of(Map.of(
+                        "deviceId", UUID.randomUUID(),
+                        "actionType", "LOCK",
+                        "parameters", "{}"
+                )))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(SceneResponseDTO.class)
+                .value(response -> assertThat(response.getDeviceActions()).hasSize(1));
+
+        webTestClient.put()
+                .uri("/api/v1/scenes/{id}/trigger-rules", created.getSceneId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(List.of(Map.of(
+                        "triggerId", "replace-trigger",
+                        "triggerType", "TIME_BASED",
+                        "conditionExpression", "time == 23:00",
+                        "enabled", true,
+                        "triggerValue", "23:00"
+                )))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(SceneResponseDTO.class)
+                .value(response -> {
+                    assertThat(response.getTriggerRules()).hasSize(1);
+                    assertThat(response.getTriggerRules().getFirst().getTriggerId()).isEqualTo("replace-trigger");
                 });
     }
 

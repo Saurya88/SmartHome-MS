@@ -41,7 +41,7 @@ public class SceneController {
     }
 
     @PostMapping
-    public ResponseEntity<SceneResponseDTO> createScene(@RequestBody SceneRequestDTO request) {
+    public ResponseEntity<SceneResponseDTO> createScene(@Valid @RequestBody SceneRequestDTO request) {
         var created = sceneService.createScene(request.getName());
 
         URI location = ServletUriComponentsBuilder
@@ -57,7 +57,7 @@ public class SceneController {
     @PutMapping("/{id}")
     public ResponseEntity<SceneResponseDTO> updateScene(
             @PathVariable UUID id,
-            @RequestBody SceneRequestDTO request) {
+            @Valid @RequestBody SceneRequestDTO request) {
 
         return ResponseEntity.ok(
                 SceneMapper.toDTO(sceneService.updateScene(id, request))
@@ -67,20 +67,48 @@ public class SceneController {
     @PostMapping("/{id}/device-actions")
     public ResponseEntity<SceneResponseDTO> addDeviceActions(
             @PathVariable UUID id,
-            @RequestBody List<DeviceAction> actions) {
+            @Valid @RequestBody List<DeviceActionRequestDTO> actions) {
 
         return ResponseEntity.ok(
-                SceneMapper.toDTO(sceneService.addDeviceActions(id, actions))
+                SceneMapper.toDTO(sceneService.addDeviceActions(
+                        id,
+                        actions.stream()
+                                .map(action -> new DeviceAction(action.getDeviceId(), action.getActionType(), action.getParameters()))
+                                .toList()
+                ))
         );
     }
 
     @PostMapping("/{id}/trigger-rules")
     public ResponseEntity<SceneResponseDTO> addTriggerRules(
             @PathVariable UUID id,
-            @RequestBody List<TriggerRule> rules) {
+            @Valid @RequestBody List<TriggerRuleRequestDTO> rules) {
 
         return ResponseEntity.ok(
-                SceneMapper.toDTO(sceneService.addTriggerRules(id, rules))
+                SceneMapper.toDTO(sceneService.addTriggerRules(
+                        id,
+                        rules.stream()
+                                .map(TriggerRuleMapper::toEntity)
+                                .toList()
+                ))
+        );
+    }
+
+    @PutMapping("/{id}/device-actions")
+    public ResponseEntity<SceneResponseDTO> replaceDeviceActions(
+            @PathVariable UUID id,
+            @Valid @RequestBody List<DeviceActionRequestDTO> actions) {
+        return ResponseEntity.ok(
+                SceneMapper.toDTO(sceneService.replaceDeviceActions(id, actions))
+        );
+    }
+
+    @PutMapping("/{id}/trigger-rules")
+    public ResponseEntity<SceneResponseDTO> replaceTriggerRules(
+            @PathVariable UUID id,
+            @Valid @RequestBody List<TriggerRuleRequestDTO> rules) {
+        return ResponseEntity.ok(
+                SceneMapper.toDTO(sceneService.replaceTriggerRules(id, rules))
         );
     }
 

@@ -13,6 +13,7 @@ public class TriggerRuleMapper {
                 .triggerType(Enum.valueOf(TriggerType.class, dto.getTriggerType()))
                 .conditionExpression(dto.getConditionExpression())
                 .enabled(dto.isEnabled())
+                .triggerValue(dto.getTriggerValue())
                 .build();
     }
 
@@ -22,6 +23,7 @@ public class TriggerRuleMapper {
                 .triggerType(entity.getTriggerType().name())
                 .conditionExpression(entity.getConditionExpression())
                 .enabled(entity.isEnabled())
+                .value(entity.getTriggerValue())
                 .build();
     }
 }

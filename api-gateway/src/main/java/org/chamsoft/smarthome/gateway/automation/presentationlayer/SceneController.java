@@ -1,5 +1,6 @@
 package org.chamsoft.smarthome.gateway.automation.presentationlayer;
 
+import jakarta.validation.Valid;
 import org.chamsoft.smarthome.gateway.automation.domainclientlayer.SceneService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -41,7 +42,7 @@ public class SceneController {
     }
 
     @PostMapping
-    public ResponseEntity<EntityModel<SceneResponseDTO>> createScene(@RequestBody SceneRequestDTO requestDTO) {
+    public ResponseEntity<EntityModel<SceneResponseDTO>> createScene(@Valid @RequestBody SceneRequestDTO requestDTO) {
         SceneResponseDTO created = sceneService.createScene(requestDTO);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -54,8 +55,37 @@ public class SceneController {
 
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<SceneResponseDTO>> updateScene(@PathVariable UUID id,
-                                                                     @RequestBody SceneRequestDTO requestDTO) {
+                                                                     @Valid @RequestBody SceneRequestDTO requestDTO) {
         return ResponseEntity.ok(toModel(sceneService.updateScene(id, requestDTO)));
+    }
+
+    @PostMapping("/{id}/device-actions")
+    public ResponseEntity<EntityModel<SceneResponseDTO>> addDeviceActions(@PathVariable UUID id,
+                                                                          @Valid @RequestBody List<DeviceActionRequestDTO> requestDTOs) {
+        return ResponseEntity.ok(toModel(sceneService.addDeviceActions(id, requestDTOs)));
+    }
+
+    @PutMapping("/{id}/device-actions")
+    public ResponseEntity<EntityModel<SceneResponseDTO>> replaceDeviceActions(@PathVariable UUID id,
+                                                                              @Valid @RequestBody List<DeviceActionRequestDTO> requestDTOs) {
+        return ResponseEntity.ok(toModel(sceneService.replaceDeviceActions(id, requestDTOs)));
+    }
+
+    @PostMapping("/{id}/trigger-rules")
+    public ResponseEntity<EntityModel<SceneResponseDTO>> addTriggerRules(@PathVariable UUID id,
+                                                                         @Valid @RequestBody List<TriggerRuleRequestDTO> requestDTOs) {
+        return ResponseEntity.ok(toModel(sceneService.addTriggerRules(id, requestDTOs)));
+    }
+
+    @PutMapping("/{id}/trigger-rules")
+    public ResponseEntity<EntityModel<SceneResponseDTO>> replaceTriggerRules(@PathVariable UUID id,
+                                                                             @Valid @RequestBody List<TriggerRuleRequestDTO> requestDTOs) {
+        return ResponseEntity.ok(toModel(sceneService.replaceTriggerRules(id, requestDTOs)));
+    }
+
+    @PutMapping("/{id}/activate")
+    public ResponseEntity<EntityModel<SceneResponseDTO>> activateScene(@PathVariable UUID id) {
+        return ResponseEntity.ok(toModel(sceneService.activateScene(id)));
     }
 
     @DeleteMapping("/{id}")

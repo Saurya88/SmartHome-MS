@@ -1,5 +1,6 @@
 package org.chamsoft.smarthome.gateway.device.presentationlayer;
 
+import jakarta.validation.Valid;
 import org.chamsoft.smarthome.gateway.device.domainclientlayer.DeviceService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -41,7 +42,7 @@ public class DeviceController {
     }
 
     @PostMapping
-    public ResponseEntity<EntityModel<DeviceResponseDTO>> createDevice(@RequestBody DeviceRequestDTO requestDTO) {
+    public ResponseEntity<EntityModel<DeviceResponseDTO>> createDevice(@Valid @RequestBody DeviceRequestDTO requestDTO) {
         DeviceResponseDTO created = deviceService.createDevice(requestDTO);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -54,7 +55,7 @@ public class DeviceController {
 
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<DeviceResponseDTO>> updateDevice(@PathVariable UUID id,
-                                                                       @RequestBody DeviceRequestDTO requestDTO) {
+                                                                       @Valid @RequestBody DeviceRequestDTO requestDTO) {
         return ResponseEntity.ok(toModel(deviceService.updateDevice(id, requestDTO)));
     }
 

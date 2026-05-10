@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://scene-orchestrator-db:3306/scene_orchestrator_db}
+    username: ${SPRING_DATASOURCE_USERNAME:smarthome}
+    password: ${SPRING_DATASOURCE_PASSWORD:smarthome}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: false
+
+  h2:
+    console:
+      enabled: false
+
+microservices:
+  automation:
+    base-url: ${AUTOMATION_SERVICE_BASE_URL:http://automation-service:8081}
+  device:
+    base-url: ${DEVICE_SERVICE_BASE_URL:http://device-service:8082}
+  user:
+    base-url: ${USER_SERVICE_BASE_URL:http://user-permissions-service:8083}

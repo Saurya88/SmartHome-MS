@@ -1,8 +1,12 @@
 package org.chamsoft.smarthome.gateway.automation.domainclientlayer;
 
+import org.chamsoft.smarthome.gateway.automation.presentationlayer.DeviceActionRequestDTO;
 import org.chamsoft.smarthome.gateway.automation.presentationlayer.SceneRequestDTO;
 import org.chamsoft.smarthome.gateway.automation.presentationlayer.SceneResponseDTO;
+import org.chamsoft.smarthome.gateway.automation.presentationlayer.TriggerRuleRequestDTO;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -49,6 +53,52 @@ public class SceneService {
     public SceneResponseDTO updateScene(UUID sceneId, SceneRequestDTO requestDTO) {
         restTemplate.put(baseUrl + "/api/v1/scenes/" + sceneId, requestDTO);
         return getSceneById(sceneId);
+    }
+
+    public SceneResponseDTO addDeviceActions(UUID sceneId, List<DeviceActionRequestDTO> actions) {
+        return restTemplate.postForObject(
+                baseUrl + "/api/v1/scenes/" + sceneId + "/device-actions",
+                actions,
+                SceneResponseDTO.class
+        );
+    }
+
+    public SceneResponseDTO replaceDeviceActions(UUID sceneId, List<DeviceActionRequestDTO> actions) {
+        ResponseEntity<SceneResponseDTO> response = restTemplate.exchange(
+                baseUrl + "/api/v1/scenes/" + sceneId + "/device-actions",
+                HttpMethod.PUT,
+                new HttpEntity<>(actions),
+                SceneResponseDTO.class
+        );
+        return response.getBody();
+    }
+
+    public SceneResponseDTO addTriggerRules(UUID sceneId, List<TriggerRuleRequestDTO> rules) {
+        return restTemplate.postForObject(
+                baseUrl + "/api/v1/scenes/" + sceneId + "/trigger-rules",
+                rules,
+                SceneResponseDTO.class
+        );
+    }
+
+    public SceneResponseDTO replaceTriggerRules(UUID sceneId, List<TriggerRuleRequestDTO> rules) {
+        ResponseEntity<SceneResponseDTO> response = restTemplate.exchange(
+                baseUrl + "/api/v1/scenes/" + sceneId + "/trigger-rules",
+                HttpMethod.PUT,
+                new HttpEntity<>(rules),
+                SceneResponseDTO.class
+        );
+        return response.getBody();
+    }
+
+    public SceneResponseDTO activateScene(UUID sceneId) {
+        ResponseEntity<SceneResponseDTO> response = restTemplate.exchange(
+                baseUrl + "/api/v1/scenes/" + sceneId + "/activate",
+                HttpMethod.PUT,
+                HttpEntity.EMPTY,
+                SceneResponseDTO.class
+        );
+        return response.getBody();
     }
 
     public void deleteScene(UUID sceneId) {
