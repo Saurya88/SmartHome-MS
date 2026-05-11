@@ -1,0 +1,65 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_TOP_DOWN()
+
+title C4 Level 2 - SmartHome Container Diagram
+
+Person(user, "SmartHome User", "Admin, member, or guest using the REST API.")
+Person(operator, "Developer / Operator", "Runs Docker Compose, inspects OpenAPI docs, and checks backing databases.")
+
+System_Ext(smart_devices, "Smart Devices", "Physical devices represented by registry records. No direct hardware adapter is implemented in the current codebase.")
+
+System_Boundary(smarthome, "SmartHome Management Platform") {
+    Container(api_gateway, "API Gateway", "Java, Spring Boot, RestTemplate", "Public REST API on port 8080. Owns gateway controllers/DTOs and proxies requests to domain services.")
+
+    Container(user_permissions_service, "User Permissions Service", "Java, Spring Boot, Spring Data JPA", "Manages users, roles, account status, and device-specific permissions. Runs on port 8083.")
+    Container(device_service, "Device Service", "Java, Spring Boot, Spring Data JPA", "Manages registered devices, type/status, firmware version, capabilities, and connectivity. Runs on port 8082.")
+    Container(automation_service, "Automation Service", "Java, Spring Boot, Spring Data JPA", "Manages scenes, device actions, trigger rules, schedules, and scene activation. Runs on port 8081.")
+    Container(scene_orchestrator_service, "Scene Orchestrator Service", "Java, Spring Boot, Spring Data MongoDB", "Process manager for scene orchestrations. Validates owner permissions and devices, then creates/updates automation scenes. Runs on port 8084.")
+
+    ContainerDb(user_permissions_db, "User Permissions DB", "MySQL 8.4", "Docker profile database for users and permissions. Local profile uses H2.")
+    ContainerDb(device_db, "Device DB", "PostgreSQL 16", "Docker profile database for device registry data. Local profile uses H2.")
+    ContainerDb(automation_db, "Automation DB", "MySQL 8.4", "Docker profile database for scenes, actions, and trigger rules. Local profile uses H2.")
+    ContainerDb(scene_orchestrator_db, "Scene Orchestrator DB", "MongoDB 7", "Stores scene orchestration documents.")
+}
+
+System_Boundary(support, "Docker Support / Admin Tools") {
+    Container(swagger_ui, "Swagger UI", "swaggerapi/swagger-ui", "Displays OpenAPI documentation from the API Gateway.")
+    Container(phpmyadmin, "phpMyAdmin", "phpmyadmin:5.2", "Admin UI for the two MySQL databases.")
+    Container(pgadmin, "pgAdmin", "dpage/pgadmin4:8", "Admin UI for the PostgreSQL device database.")
+    Container(mongo_express, "Mongo Express", "mongo-express:1.0.2", "Admin UI for the MongoDB scene orchestrator database.")
+}
+
+Rel(user, api_gateway, "Uses public API", "HTTP/JSON")
+Rel(operator, swagger_ui, "Views API docs")
+Rel(operator, phpmyadmin, "Inspects MySQL data")
+Rel(operator, pgadmin, "Inspects PostgreSQL data")
+Rel(operator, mongo_express, "Inspects MongoDB data")
+
+Rel(swagger_ui, api_gateway, "Loads OpenAPI spec", "HTTP /v3/api-docs")
+
+Rel(api_gateway, user_permissions_service, "Proxies /api/v1/users", "HTTP/JSON")
+Rel(api_gateway, device_service, "Proxies /api/v1/devices", "HTTP/JSON")
+Rel(api_gateway, automation_service, "Proxies /api/v1/scenes and /api/v1/trigger-rules", "HTTP/JSON")
+Rel(api_gateway, scene_orchestrator_service, "Proxies /api/v1/scene-orchestrations", "HTTP/JSON")
+
+Rel(user_permissions_service, user_permissions_db, "Reads and writes users and permissions", "JPA/JDBC")
+Rel(device_service, device_db, "Reads and writes device registry data", "JPA/JDBC")
+Rel(automation_service, automation_db, "Reads and writes scenes, actions, and trigger rules", "JPA/JDBC")
+Rel(scene_orchestrator_service, scene_orchestrator_db, "Reads and writes scene orchestration documents", "Spring Data MongoDB")
+
+Rel(scene_orchestrator_service, user_permissions_service, "Validates owner account status and device permissions", "HTTP/JSON")
+Rel(scene_orchestrator_service, device_service, "Validates device status and firmware version", "HTTP/JSON")
+Rel(scene_orchestrator_service, automation_service, "Creates, updates, activates, and deletes underlying scenes", "HTTP/JSON")
+
+Rel(device_service, smart_devices, "Represents registered devices by metadata/status records", "UUID references")
+Rel(automation_service, device_service, "Stores device IDs in scene actions", "UUID references")
+Rel(user_permissions_service, device_service, "Stores device IDs in permissions", "UUID references")
+
+Rel(phpmyadmin, user_permissions_db, "Administers", "MySQL protocol")
+Rel(phpmyadmin, automation_db, "Administers", "MySQL protocol")
+Rel(pgadmin, device_db, "Administers", "PostgreSQL protocol")
+Rel(mongo_express, scene_orchestrator_db, "Administers", "MongoDB protocol")
+
+@enduml

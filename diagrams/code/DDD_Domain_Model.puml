@@ -1,9 +1,12 @@
 @startuml
 title Smart Home Management Platform - DDD Domain Model
 
+left to right direction
+
 skinparam packageStyle rectangle
 skinparam classAttributeIconSize 0
 skinparam shadowing false
+skinparam linetype ortho
 
 skinparam package {
   BorderColor #555555
@@ -21,12 +24,24 @@ legend right
   <<Entity>> Entity
   <<Value Object>> Value Object
   <<Repository>> Repository
-  <<Domain Service>> Domain Service
-  --> Reference by ID
+  <<Domain Service>> Domain/Application Service
+  <<Domain Client>> Cross-context client / ACL
+  <<Interface Layer>> API gateway / routing layer
+  --> Reference by ID or dependency
   *-- Owned inside aggregate
-  Red context: Core Subdomain
-  Blue/Green contexts: Supporting Subdomains
+  o-- Associated collection
+  Red context: Core subdomain
+  Orange context: Orchestration/process manager
+  Blue/Green contexts: Supporting subdomains
 endlegend
+
+package "API Gateway (Interface Layer - no domain aggregate)" #eeeeee {
+  class ApiGateway <<Interface Layer>> {
+    routeRequests()
+    adaptGatewayDTOs()
+    delegateToServices()
+  }
+}
 
 package "Automation Routine Management (CORE)" #ffd6d6 {
   package "Scene Aggregate" {
@@ -34,7 +49,11 @@ package "Automation Routine Management (CORE)" #ffd6d6 {
       sceneId: UUID
       name: String
       status: SceneStatus
-      createdAt: DateTime
+      createdAt: LocalDateTime
+      deviceActions: List<DeviceAction>
+      triggerRules: List<TriggerRule>
+      addDeviceAction(action)
+      addTriggerRule(rule)
       activate()
     }
 
@@ -57,6 +76,8 @@ package "Automation Routine Management (CORE)" #ffd6d6 {
       triggerType: TriggerType
       conditionExpression: String
       enabled: Boolean
+      condition: Condition
+      schedule: Schedule
       triggerValue: String
     }
 
@@ -67,8 +88,8 @@ package "Automation Routine Management (CORE)" #ffd6d6 {
     }
 
     class Schedule <<Value Object>> {
-      startTime: DateTime
-      endTime: DateTime
+      startTime: LocalDateTime
+      endTime: LocalDateTime
       recurrencePattern: String
     }
 
@@ -80,32 +101,40 @@ package "Automation Routine Management (CORE)" #ffd6d6 {
   }
 
   interface SceneRepository <<Repository>> {
-    findById(sceneId)
+    findById(UUID)
     findAll()
-    save(scene)
+    save(Scene)
+    deleteById(UUID)
   }
 
   interface TriggerRuleRepository <<Repository>> {
-    findById(triggerId)
+    findById(String)
     findAll()
-    save(triggerRule)
+    save(TriggerRule)
+    deleteById(String)
   }
 
   class SceneService <<Domain Service>> {
-    createScene()
-    addDeviceActions()
-    addTriggerRules()
-    activateScene()
+    createScene(name)
+    updateScene(sceneId, request)
+    addDeviceActions(sceneId, actions)
+    addTriggerRules(sceneId, rules)
+    replaceDeviceActions(sceneId, actions)
+    replaceTriggerRules(sceneId, rules)
+    activateScene(sceneId)
+    getAllScenes()
+    deleteScene(sceneId)
   }
 
   class TriggerRuleService <<Domain Service>> {
-    createTriggerRule()
-    updateTriggerRule()
-    deleteTriggerRule()
+    getAllTriggerRules()
+    getTriggerRuleById(id)
+    saveTriggerRule(triggerRule)
+    deleteTriggerRuleById(id)
   }
 
   Scene *-- "0..*" DeviceAction
-  Scene *-- "0..*" TriggerRule
+  Scene o-- "0..*" TriggerRule : triggerRules
   Scene --> SceneStatus
   TriggerRule *-- Condition
   TriggerRule *-- Schedule
@@ -116,7 +145,7 @@ package "Automation Routine Management (CORE)" #ffd6d6 {
   TriggerRuleService ..> TriggerRuleRepository
 }
 
-package "Scene Orchestration (Aggregator)" #ffe7c2 {
+package "Scene Orchestration (Process Manager)" #ffe7c2 {
   package "Scene Orchestration Aggregate" {
     class SceneOrchestration <<Aggregate Root>> {
       orchestrationId: UUID
@@ -124,7 +153,9 @@ package "Scene Orchestration (Aggregator)" #ffe7c2 {
       automationSceneId: UUID
       name: String
       status: String
-      createdAt: DateTime
+      createdAt: LocalDateTime
+      deviceActions: List<ManagedDeviceAction>
+      triggerRules: List<ManagedTriggerRule>
     }
 
     class ManagedDeviceAction <<Value Object>> {
@@ -143,22 +174,47 @@ package "Scene Orchestration (Aggregator)" #ffe7c2 {
   }
 
   interface SceneOrchestrationRepository <<Repository>> {
-    findById(orchestrationId)
+    findById(UUID)
     findAll()
-    save(orchestration)
-    deleteById(orchestrationId)
+    save(SceneOrchestration)
+    deleteById(UUID)
   }
 
   class SceneOrchestrationService <<Domain Service>> {
-    createSceneOrchestration()
-    updateSceneOrchestration()
-    deleteSceneOrchestration()
+    getAllSceneOrchestrations()
+    getSceneOrchestrationById(orchestrationId)
+    createSceneOrchestration(request)
+    updateSceneOrchestration(orchestrationId, request)
+    deleteSceneOrchestration(orchestrationId)
+    validateInvariant(request)
   }
 
-  SceneOrchestration *-- "0..*" ManagedDeviceAction
-  SceneOrchestration *-- "0..*" ManagedTriggerRule
+  class AutomationServiceClient <<Domain Client>> {
+    createScene(request)
+    updateScene(sceneId, request)
+    addDeviceActions(sceneId, actions)
+    addTriggerRules(sceneId, rules)
+    replaceDeviceActions(sceneId, actions)
+    replaceTriggerRules(sceneId, rules)
+    activateScene(sceneId)
+    deleteScene(sceneId)
+  }
+
+  class DeviceServiceClient <<Domain Client>> {
+    getDeviceById(deviceId)
+  }
+
+  class UserServiceClient <<Domain Client>> {
+    getUserById(userId)
+  }
+
+  SceneOrchestration *-- "1..*" ManagedDeviceAction
+  SceneOrchestration *-- "1..*" ManagedTriggerRule
   SceneOrchestrationRepository ..> SceneOrchestration
   SceneOrchestrationService ..> SceneOrchestrationRepository
+  SceneOrchestrationService ..> AutomationServiceClient
+  SceneOrchestrationService ..> DeviceServiceClient
+  SceneOrchestrationService ..> UserServiceClient
 }
 
 package "Device Registry (Supporting)" #dcecff {
@@ -169,12 +225,9 @@ package "Device Registry (Supporting)" #dcecff {
       deviceType: DeviceType
       status: DeviceStatus
       firmwareVersion: String
-      registeredAt: DateTime
+      registeredAt: LocalDateTime
+      capabilities: List<String>
       connectivityType: String
-    }
-
-    class DeviceCapability <<Value Object>> {
-      capability: String
     }
 
     enum DeviceType {
@@ -192,21 +245,57 @@ package "Device Registry (Supporting)" #dcecff {
     }
   }
 
+  package "Implemented Device Value Objects" {
+    class DeviceCapabilities <<Value Object>> {
+      capabilityType: String
+      supportedActions: List<String>
+      unit: String
+    }
+
+    class NetworkInfo <<Value Object>> {
+      ipAddress: String
+      macAddress: String
+      connectivityType: ConnectivityType
+    }
+
+    class SensorData <<Value Object>> {
+      timestamp: LocalDateTime
+      value: String
+      unit: String
+    }
+
+    class MaintenanceRecord <<Value Object>> {
+      maintenanceDate: LocalDateTime
+      performedBy: String
+      notes: String
+    }
+
+    enum ConnectivityType {
+      WIFI
+      BLUETOOTH
+      ETHERNET
+    }
+  }
+
   interface DeviceRepository <<Repository>> {
-    findById(deviceId)
+    findById(UUID)
+    findAll()
     existsByDeviceName(deviceName)
-    save(device)
+    save(Device)
+    deleteById(UUID)
   }
 
   class DeviceService <<Domain Service>> {
-    createDevice()
-    updateDevice()
-    deleteDevice()
+    getAllDevices()
+    getDeviceById(deviceId)
+    createDevice(device)
+    updateDevice(deviceId, device)
+    deleteDevice(deviceId)
   }
 
-  Device *-- "0..*" DeviceCapability
   Device --> DeviceType
   Device --> DeviceStatus
+  NetworkInfo --> ConnectivityType
   DeviceRepository ..> Device
   DeviceService ..> DeviceRepository
 }
@@ -219,6 +308,7 @@ package "User Permissions (Supporting)" #ddf8dd {
       email: Email
       role: UserRole
       accountStatus: AccountStatus
+      permissions: List<Permission>
     }
 
     class Email <<Value Object>> {
@@ -253,14 +343,20 @@ package "User Permissions (Supporting)" #ddf8dd {
     findByUserId(userId)
     findByUsername(username)
     findByEmail_Value(email)
-    save(user)
+    findAll()
+    save(User)
+    delete(User)
   }
 
-  class UserService <<Domain Service>> {
-    createUser()
-    updateUser()
-    deleteUser()
+  interface UserService <<Domain Service>> {
+    getAllUsers()
+    getUserById(userId)
+    createUser(dto)
+    updateUser(userId, dto)
+    deleteUser(userId)
   }
+
+  class UserServiceImpl <<Domain Service>>
 
   User *-- Email
   User *-- "0..*" Permission
@@ -268,7 +364,8 @@ package "User Permissions (Supporting)" #ddf8dd {
   User --> AccountStatus
   Permission --> AccessLevel
   UserRepository ..> User
-  UserService ..> UserRepository
+  UserServiceImpl ..|> UserService
+  UserServiceImpl ..> UserRepository
 }
 
 note left of Scene
@@ -283,29 +380,47 @@ note top of SceneOrchestration
   SceneOrchestration must contain at least one
   ManagedDeviceAction and one ManagedTriggerRule.
   Owner must be ACTIVE and have CONTROL/FULL_ACCESS
-  to all referenced devices, and each device must be
-  ONLINE with a valid firmwareVersion.
+  to every referenced device. Each device must be
+  ONLINE and have a nonblank firmwareVersion.
 end note
 
 note right of Device
   Invariant:
   Device name must be unique.
-  Firmware is tracked as firmwareVersion
-  in the implemented Device aggregate.
+  The implemented aggregate currently persists
+  capabilities as List<String> and connectivityType
+  as String.
+end note
+
+note bottom of DeviceCapabilities
+  These embeddable value objects exist in the
+  device-service domain package, but are not
+  currently attached to Device.
 end note
 
 note left of User
   Invariant:
   Username must be unique.
-  User must have explicit permission
-  to control a device in an automation scene.
+  A user needs CONTROL or FULL_ACCESS permission
+  to control a device through a scene orchestration.
 end note
+
+note bottom of ApiGateway
+  The gateway owns controllers, DTOs, and service clients only.
+  It does not define a separate domain aggregate.
+end note
+
+ApiGateway ..> DeviceService
+ApiGateway ..> UserService
+ApiGateway ..> SceneService
+ApiGateway ..> TriggerRuleService
+ApiGateway ..> SceneOrchestrationService
 
 DeviceAction ..> Device : deviceId
 Permission ..> Device : deviceId
-Scene ..> User : userId / ownership reference
+ManagedDeviceAction ..> Device : deviceId
+ManagedTriggerRule ..> TriggerRule : triggerId
 SceneOrchestration ..> User : ownerUserId
-SceneOrchestration ..> Device : deviceId
 SceneOrchestration ..> Scene : automationSceneId
 
 @enduml

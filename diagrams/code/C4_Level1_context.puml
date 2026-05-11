@@ -1,0 +1,22 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Level 1 - SmartHome System Context
+
+Person(user, "SmartHome User", "Admin, member, or guest who manages users, permissions, registered devices, scenes, trigger rules, and scene orchestrations.")
+Person(operator, "Developer / Operator", "Runs the platform locally or with Docker and inspects APIs or backing data during development.")
+
+System(smarthome, "SmartHome Management Platform", "Spring Boot microservice platform that exposes a REST API for user permissions, device registry, automation routines, and scene orchestration.")
+
+System_Ext(smart_devices, "Smart Devices", "Physical lights, thermostats, sensors, cameras, and locks represented by device registry records. The current code does not include a direct hardware adapter.")
+System_Ext(api_clients, "API Clients", "HTTP clients such as Postman, browser requests, scripts, or Swagger UI.")
+
+Rel(user, api_clients, "Uses")
+Rel(api_clients, smarthome, "Calls public API endpoints", "REST/JSON")
+Rel(operator, smarthome, "Runs, tests, and administers", "Gradle/Docker/HTTP")
+
+Rel(smarthome, smart_devices, "Stores metadata, status, firmware version, permissions, and planned actions for", "Device IDs")
+
+@enduml
